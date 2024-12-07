@@ -1,11 +1,16 @@
-# Log file path
-$logFile = "log2.txt"
+# This script was designed to run on Azure Cloud Shell for a single subscription.
+# If running from another platform, ensure to add steps for authentication.
+# Steps to loop through multiple subscriptions can be added if required.
+
+# Log file path: Choose one depending on the OS (Windows/Linux).
+# $logFile = "C:\path\to\logfile.txt"  # For Windows
+$logFile = "log1.txt"  # For Linux/Cloud Shell (relative path)
 
 # Write header to log file
 Add-Content -Path $logFile -Value "$(Get-Date) - Script started."
 
-# Connect to Azure
-Connect-AzAccount
+# Connect to Azure (uncomment if running outside Cloud Shell)
+# Connect-AzAccount
 
 # Get list of all Azure Resource Groups
 $resourceGroups = Get-AzResourceGroup
@@ -19,9 +24,17 @@ $resourceGroups | ForEach-Object {
     Add-Content -Path $logFile -Value "$(Get-Date) - Resource Group: $($_.ResourceGroupName)"
 }
 
-# Loop through each Resource Group to delete
+# Loop through each Resource Group to delete and provide progress feedback
+$totalRGs = $resourceGroups.Count
+$counter = 1
+
 foreach ($rg in $resourceGroups) {
     $rgName = $rg.ResourceGroupName
+    
+    # Show progress in UI
+    Write-Host "Deleting Resource Group ${counter} of ${totalRGs}: ${rgName}..."
+
+    # Log the deletion attempt
     Add-Content -Path $logFile -Value "$(Get-Date) - Attempting to delete Resource Group: $rgName"
     
     Try {
@@ -35,6 +48,9 @@ foreach ($rg in $resourceGroups) {
         # Log failure if an error occurs during deletion
         Add-Content -Path $logFile -Value "$(Get-Date) - FAILED to delete Resource Group: $rgName. Error: $($_.Exception.Message)"
     }
+
+    # Increment the counter
+    $counter++
 }
 
 # Script ends here, log time of completion
