@@ -1,5 +1,5 @@
 # Log file path
-$logFile = "C:\path\to\logfile.txt"
+$logFile = "log2.txt"
 
 # Write header to log file
 Add-Content -Path $logFile -Value "$(Get-Date) - Script started."
