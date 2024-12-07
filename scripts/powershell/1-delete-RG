@@ -1,0 +1,56 @@
+# Log file path
+$logFile = "C:\path\to\logfile.txt"
+
+# Write header to log file
+Add-Content -Path $logFile -Value "$(Get-Date) - Script started."
+
+# Connect to Azure
+Connect-AzAccount
+
+# Get list of all Azure Resource Groups
+$resourceGroups = Get-AzResourceGroup
+
+# Log the number of resource groups retrieved
+Add-Content -Path $logFile -Value "$(Get-Date) - Retrieved $($resourceGroups.Count) Resource Groups."
+
+# Log the list of all Resource Groups found
+Add-Content -Path $logFile -Value "$(Get-Date) - List of Resource Groups found:"
+$resourceGroups | ForEach-Object {
+    Add-Content -Path $logFile -Value "$(Get-Date) - Resource Group: $($_.ResourceGroupName)"
+}
+
+# Loop through each Resource Group to delete
+foreach ($rg in $resourceGroups) {
+    $rgName = $rg.ResourceGroupName
+    Add-Content -Path $logFile -Value "$(Get-Date) - Attempting to delete Resource Group: $rgName"
+    
+    Try {
+        # Try to delete the resource group
+        Remove-AzResourceGroup -Name $rgName -Force -ErrorAction Stop
+
+        # Log the success
+        Add-Content -Path $logFile -Value "$(Get-Date) - Successfully deleted Resource Group: $rgName"
+    }
+    Catch {
+        # Log failure if an error occurs during deletion
+        Add-Content -Path $logFile -Value "$(Get-Date) - FAILED to delete Resource Group: $rgName. Error: $($_.Exception.Message)"
+    }
+}
+
+# Script ends here, log time of completion
+Add-Content -Path $logFile -Value "$(Get-Date) - Script completed."
+
+# After deletions, get the remaining Resource Groups
+$remainingResourceGroups = Get-AzResourceGroup
+
+# Display remaining Resource Groups on the screen
+Write-Output "Remaining Resource Groups after deletion attempt:"
+$remainingResourceGroups | ForEach-Object {
+    Write-Output "Resource Group: $($_.ResourceGroupName)"
+}
+
+# Log the remaining Resource Groups
+Add-Content -Path $logFile -Value "$(Get-Date) - Remaining Resource Groups after deletion attempt:"
+$remainingResourceGroups | ForEach-Object {
+    Add-Content -Path $logFile -Value "$(Get-Date) - Resource Group: $($_.ResourceGroupName)"
+}
