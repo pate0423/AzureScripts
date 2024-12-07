@@ -1,0 +1,76 @@
+# This script was designed to run on Azure Cloud Shell for a single subscription.
+# If running from another platform, ensure to add steps for authentication.
+# Steps to loop through multiple subscriptions can be added if required.
+
+# Log file path: Choose one depending on the OS (Windows/Linux).
+# $logFile = "C:\path\to\logfile.txt"  # For Windows
+$logFile = "log_policy_deletion.txt"  # For Linux/Cloud Shell (relative path)
+
+# Write header to log file
+Add-Content -Path $logFile -Value "$(Get-Date) - Script started."
+
+# Connect to Azure (uncomment if running outside Cloud Shell)
+# Connect-AzAccount
+
+# Get list of all Azure Policy Assignments
+$policyAssignments = Get-AzPolicyAssignment
+
+# Log the number of policy assignments retrieved
+Add-Content -Path $logFile -Value "$(Get-Date) - Retrieved $($policyAssignments.Count) Policy Assignments."
+
+# Log the list of all Policy Assignments found (including definition and assignment ID) in table format
+
+$policyAssignments | Select-Object Name, @{Name="DefinitionID";Expression={$_.PolicyDefinitionId}}, @{Name="AssignmentID";Expression={$_.Id}} | 
+    Format-Table -AutoSize | Out-String | Add-Content -Path $logFile
+
+# Log header for table
+Add-Content -Path $logFile -Value "$(Get-Date) - List of Policy Assignments found (formatted as a table):"
+
+# Loop through each Policy Assignment to delete and provide progress feedback
+$totalPolicies = $policyAssignments.Count
+$counter = 1
+
+foreach ($policy in $policyAssignments) {
+    $policyName = $policy.Name
+    $assignmentId = $policy.Id
+    $definitionId = $policy.PolicyDefinitionId
+
+    # Show progress in UI
+    Write-Host "Deleting Policy Assignment ${counter} of ${totalPolicies}: ${policyName}..."
+
+    # Log the deletion attempt
+    Add-Content -Path $logFile -Value "$(Get-Date) - Attempting to delete Policy Assignment: $policyName, Definition ID: $definitionId, Assignment ID: $assignmentId"
+    
+    Try {
+        # Try to delete the policy assignment
+        Remove-AzPolicyAssignment -PolicyAssignmentName $policyName -Force -ErrorAction Stop
+
+        # Log the success
+        Add-Content -Path $logFile -Value "$(Get-Date) - Successfully deleted Policy Assignment: $policyName, Definition ID: $definitionId, Assignment ID: $assignmentId"
+    }
+    Catch {
+        # Log failure if an error occurs during deletion
+        Add-Content -Path $logFile -Value "$(Get-Date) - FAILED to delete Policy Assignment: $policyName, Assignment ID: $assignmentId. Error: $($_.Exception.Message)"
+    }
+
+    # Increment the counter
+    $counter++
+}
+
+# Script ends here, log time of completion
+Add-Content -Path $logFile -Value "$(Get-Date) - Script completed."
+
+# After deletions, get the remaining Policy Assignments
+$remainingPolicyAssignments = Get-AzPolicyAssignment
+
+# Display remaining Policy Assignments on the screen
+Write-Output "Remaining Policy Assignments after deletion attempt:"
+$remainingPolicyAssignments | ForEach-Object {
+    Write-Output "Policy Assignment: $($_.Name), Assignment ID: $($_.Id)"
+}
+
+# Log the remaining Policy Assignments
+Add-Content -Path $logFile -Value "$(Get-Date) - Remaining Policy Assignments after deletion attempt:"
+$remainingPolicyAssignments | ForEach-Object {
+    Add-Content -Path $logFile -Value "$(Get-Date) - Policy Assignment: $($_.Name), Assignment ID: $($_.Id)"
+}
